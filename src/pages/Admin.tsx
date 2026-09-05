@@ -52,7 +52,7 @@ interface IndexRecord {
   issued_at: string;
   expires_at: string;
   status: 'active' | 'inactive' | 'expired';
-  metadata: Record<string, unknown> | null;
+  metadata: unknown;
   created_at: string;
 }
 
