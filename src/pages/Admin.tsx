@@ -98,6 +98,7 @@ const { toast } = useToast();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isSavingRecord, setIsSavingRecord] = useState(false);
 
   const [formData, setFormData] = useState<{
     index_number: string;
@@ -270,6 +271,8 @@ registered_student: true,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingPhoto || isSavingRecord) return;
+    setIsSavingRecord(true);
     
     try {
       if (editingRecord) {
@@ -319,6 +322,8 @@ registered_student: true,
         description: error.message || 'Failed to save record.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSavingRecord(false);
     }
   };
 
@@ -443,13 +448,40 @@ const resetForm = () => {
     setIsUploadingPhoto(true);
     try {
       const fileName = `${institutionId}/${crypto.randomUUID()}.${fileExt}`;
+      const previousPhoto = formData.photo_url;
       const { error: uploadError } = await supabase.storage
         .from('identity-photos')
         .upload(fileName, file, { upsert: false, contentType: file.type });
       if (uploadError) throw uploadError;
 
+      // Existing records are updated as part of the upload so the file cannot
+      // be left in storage without being attached to its identity card.
+      if (editingRecord) {
+        const { error: attachError } = await supabase
+          .from('index_records')
+          .update({ photo_url: fileName })
+          .eq('id', editingRecord.id);
+
+        if (attachError) {
+          await supabase.storage.from('identity-photos').remove([fileName]);
+          throw attachError;
+        }
+
+        setEditingRecord({ ...editingRecord, photo_url: fileName });
+        setRecords((current) => current.map((record) => (
+          record.id === editingRecord.id ? { ...record, photo_url: fileName } : record
+        )));
+
+        if (previousPhoto && isStoragePhoto(previousPhoto) && previousPhoto !== fileName) {
+          await supabase.storage.from('identity-photos').remove([previousPhoto]);
+        }
+      }
+
       setFormData((prev) => ({ ...prev, photo_url: fileName }));
-      toast({ title: 'Photo uploaded successfully' });
+      toast({
+        title: editingRecord ? 'Photo attached to record' : 'Photo ready to save',
+        description: editingRecord ? 'The identity card now uses this photo.' : 'Select Create to finish adding the record.',
+      });
     } catch (error: any) {
       console.error('Photo upload error:', error);
       toast({
@@ -465,6 +497,27 @@ const resetForm = () => {
 
   const handleRemovePhoto = async () => {
     const current = formData.photo_url;
+    if (editingRecord) {
+      const { error } = await supabase
+        .from('index_records')
+        .update({ photo_url: null })
+        .eq('id', editingRecord.id);
+
+      if (error) {
+        toast({
+          title: 'Could not remove photo',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setEditingRecord({ ...editingRecord, photo_url: null });
+      setRecords((records) => records.map((record) => (
+        record.id === editingRecord.id ? { ...record, photo_url: null } : record
+      )));
+    }
+
     setFormData((prev) => ({ ...prev, photo_url: '' }));
     if (current && isStoragePhoto(current)) {
       await supabase.storage.from('identity-photos').remove([current]);
@@ -770,8 +823,9 @@ const resetForm = () => {
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" className="gradient-primary border-0">
-                    {editingRecord ? 'Update' : 'Create'}
+                  <Button type="submit" className="gradient-primary border-0" disabled={isUploadingPhoto || isSavingRecord}>
+                    {(isUploadingPhoto || isSavingRecord) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isUploadingPhoto ? 'Uploading photo' : isSavingRecord ? 'Saving' : editingRecord ? 'Update' : 'Create'}
                   </Button>
                 </div>
               </form>
