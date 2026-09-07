@@ -706,7 +706,7 @@ const resetForm = () => {
                   Add Record
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">
                   {editingRecord ? 'Edit Record' : 'Add New Record'}
@@ -715,164 +715,168 @@ const resetForm = () => {
                   {editingRecord ? 'Update the identity record details.' : 'Create a new identity record.'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="index_number">Identification Number</Label>
-                    <Input
-                      id="index_number"
-                      placeholder="ID-2024-001"
-                      value={formData.index_number}
-                      onChange={(e) => setFormData({ ...formData, index_number: e.target.value.toUpperCase() })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registered_student">Student Registration</Label>
-                  <Select
-                    value={formData.registered_student ? 'registered' : 'unregistered'}
-                    onValueChange={(value) => setFormData({ ...formData, registered_student: value === 'registered' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="registered">Registered</SelectItem>
-                      <SelectItem value="unregistered">Not Registered</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name</Label>
-                  <Input
-                    id="full_name"
-                    placeholder="John Doe"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="organization">Organization</Label>
-                  <Input
-                    id="organization"
-                    placeholder="Acme Corporation"
-                    value={formData.organization}
-                    onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                    required
-                  />
-                </div>
-<div className="space-y-2">
-                  <Label>Photo (optional)</Label>
-                  {previewUrl ? (
-                    <div className="flex items-center gap-3 rounded-lg border border-border p-3">
-                      <img
-                        src={previewUrl}
-                        alt="Record photo preview"
-                        className="h-16 w-16 rounded-lg object-cover border border-border"
-                      />
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => photoInputRef.current?.click()}
-                          disabled={isUploadingPhoto}
-                        >
-                          {isUploadingPhoto ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <ImagePlus className="h-4 w-4 mr-2" />
-                          )}
-                          Replace
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={handleRemovePhoto}>
-                          <X className="h-4 w-4 mr-2" />
-                          Remove
-                        </Button>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
+                  {/* Photo column */}
+                  <div className="space-y-3">
+                    <Label>Photo (optional)</Label>
+                    {previewUrl ? (
+                      <div className="rounded-lg border border-border p-3 space-y-3">
+                        <img
+                          src={previewUrl}
+                          alt="Record photo preview"
+                          className="w-full aspect-square rounded-lg object-cover border border-border"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => photoInputRef.current?.click()}
+                            disabled={isUploadingPhoto}
+                          >
+                            {isUploadingPhoto ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <ImagePlus className="h-4 w-4 mr-2" />
+                            )}
+                            Replace
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" className="text-destructive flex-1" onClick={handleRemovePhoto}>
+                            <X className="h-4 w-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="flex flex-col items-center justify-center py-6 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors"
-                      onClick={() => photoInputRef.current?.click()}
-                    >
-                      {isUploadingPhoto ? (
-                        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-                      ) : (
-                        <ImagePlus className="h-6 w-6 text-muted-foreground mb-2" />
-                      )}
-                      <p className="text-sm font-medium">{isUploadingPhoto ? 'Uploading...' : 'Click to upload a photo'}</p>
-                      <p className="text-xs text-muted-foreground mt-1">JPG, PNG or WebP — max 2MB</p>
-                    </div>
-                  )}
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                    disabled={isUploadingPhoto}
-                  />
-                  <div className="pt-1">
-                    <Label htmlFor="photo_url" className="text-xs text-muted-foreground">
-                      ...or paste an image URL (optional)
-                    </Label>
-                    <Input
-                      id="photo_url"
-                      type="url"
-                      placeholder="https://example.com/photo.jpg"
-                      value={isStoragePhoto(formData.photo_url) ? '' : formData.photo_url}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value && isStoragePhoto(formData.photo_url)) {
-                          supabase.storage.from('identity-photos').remove([formData.photo_url]);
-                        }
-                        setFormData({ ...formData, photo_url: value });
-                      }}
+                    ) : (
+                      <div
+                        className="flex flex-col items-center justify-center py-8 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors"
+                        onClick={() => photoInputRef.current?.click()}
+                      >
+                        {isUploadingPhoto ? (
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                        ) : (
+                          <ImagePlus className="h-8 w-8 text-muted-foreground mb-2" />
+                        )}
+                        <p className="text-sm font-medium">{isUploadingPhoto ? 'Uploading...' : 'Click to upload a photo'}</p>
+                        <p className="text-xs text-muted-foreground mt-1">JPG, PNG or WebP — max 2MB</p>
+                      </div>
+                    )}
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      disabled={isUploadingPhoto}
                     />
+                    <div className="pt-1">
+                      <Label htmlFor="photo_url" className="text-xs text-muted-foreground">
+                        ...or paste an image URL (optional)
+                      </Label>
+                      <Input
+                        id="photo_url"
+                        type="url"
+                        placeholder="https://example.com/photo.jpg"
+                        value={isStoragePhoto(formData.photo_url) ? '' : formData.photo_url}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value && isStoragePhoto(formData.photo_url)) {
+                            supabase.storage.from('identity-photos').remove([formData.photo_url]);
+                          }
+                          setFormData({ ...formData, photo_url: value });
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fields column */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
+                    <div className="space-y-2">
+                      <Label htmlFor="index_number">Identification Number</Label>
+                      <Input
+                        id="index_number"
+                        placeholder="ID-2024-001"
+                        value={formData.index_number}
+                        onChange={(e) => setFormData({ ...formData, index_number: e.target.value.toUpperCase() })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="registered_student">Student Registration</Label>
+                      <Select
+                        value={formData.registered_student ? 'registered' : 'unregistered'}
+                        onValueChange={(value) => setFormData({ ...formData, registered_student: value === 'registered' })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="registered">Registered</SelectItem>
+                          <SelectItem value="unregistered">Not Registered</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="full_name">Full Name</Label>
+                      <Input
+                        id="full_name"
+                        placeholder="John Doe"
+                        value={formData.full_name}
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="organization">Organization</Label>
+                      <Input
+                        id="organization"
+                        placeholder="Acme Corporation"
+                        value={formData.organization}
+                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="issued_at">Issue Date</Label>
+                      <Input
+                        id="issued_at"
+                        type="date"
+                        value={formData.issued_at}
+                        onChange={(e) => setFormData({ ...formData, issued_at: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="expires_at">Expiry Date</Label>
+                      <Input
+                        id="expires_at"
+                        type="date"
+                        value={formData.expires_at}
+                        onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="issued_at">Issue Date</Label>
-                    <Input
-                      id="issued_at"
-                      type="date"
-                      value={formData.issued_at}
-                      onChange={(e) => setFormData({ ...formData, issued_at: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="expires_at">Expiry Date</Label>
-                    <Input
-                      id="expires_at"
-                      type="date"
-                      value={formData.expires_at}
-                      onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-4">
+                <div className="flex justify-end gap-2 pt-2 border-t">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
