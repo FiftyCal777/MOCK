@@ -612,10 +612,17 @@ const resetForm = () => {
     );
   });
 
+  const getEffectiveStatus = (record: { status: string; expires_at: string }) => {
+    if (record.status === 'inactive') return 'inactive';
+    const expiry = new Date(record.expires_at);
+    if (!isNaN(expiry.getTime()) && expiry < new Date()) return 'expired';
+    return record.status;
+  };
+
   const stats = {
     total: records.length,
-    active: records.filter((r) => r.status === 'active').length,
-    inactive: records.filter((r) => r.status === 'inactive').length,
+    active: records.filter((r) => getEffectiveStatus(r) === 'active').length,
+    inactive: records.filter((r) => getEffectiveStatus(r) === 'inactive').length,
     verifications: logs.length,
   };
 
@@ -631,6 +638,7 @@ const resetForm = () => {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
 
   return (
     <Layout>
