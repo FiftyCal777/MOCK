@@ -991,7 +991,7 @@ const resetForm = () => {
                             <TableCell className="font-mono">{record.index_number}</TableCell>
                             <TableCell>{record.full_name}</TableCell>
                             <TableCell>{getRecordOrganization(record)}</TableCell>
-                            <TableCell>{getStatusBadge(record.status)}</TableCell>
+                            <TableCell>{getStatusBadge(getEffectiveStatus(record))}</TableCell>
                             <TableCell>{new Date(record.expires_at).toLocaleDateString()}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
