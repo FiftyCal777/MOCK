@@ -148,6 +148,31 @@ registered_student: true,
     }
   }, [isAdmin, institutionId]);
 
+  // Keep the records list in sync with the database
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-index-records')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'index_records' },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isAdmin, institutionId]);
+
+
   const fetchUserInstitutions = async () => {
     if (!user) return;
     try {
@@ -194,14 +219,21 @@ registered_student: true,
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch records
-      const { data: recordsData, error: recordsError } = await supabase
+      // Fetch records for the active institution only
+      let recordsQuery = supabase
         .from('index_records')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (institutionId) {
+        recordsQuery = recordsQuery.eq('institution_id', institutionId);
+      }
+
+      const { data: recordsData, error: recordsError } = await recordsQuery;
+
       if (recordsError) throw recordsError;
       setRecords(recordsData || []);
+
 
       // Fetch verification logs
       const { data: logsData, error: logsError } = await supabase
