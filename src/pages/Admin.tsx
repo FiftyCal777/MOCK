@@ -34,6 +34,7 @@ Plus,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { isStoragePhoto, resolvePhotoUrl } from '@/lib/photo';
+import type { Json } from '@/integrations/supabase/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -273,37 +274,49 @@ registered_student: true,
     e.preventDefault();
     if (isUploadingPhoto || isSavingRecord) return;
     setIsSavingRecord(true);
+
+    const existingMetadata = editingRecord?.metadata;
+    const metadata: Json = existingMetadata && typeof existingMetadata === 'object' && !Array.isArray(existingMetadata)
+      ? {
+          ...(existingMetadata as Record<string, Json | undefined>),
+          registered_student: formData.registered_student,
+        }
+      : { registered_student: formData.registered_student };
+    const recordValues = {
+      index_number: formData.index_number.trim().toUpperCase(),
+      full_name: formData.full_name.trim(),
+      photo_url: formData.photo_url.trim() || null,
+      organization: formData.organization.trim(),
+      issued_at: formData.issued_at,
+      expires_at: formData.expires_at,
+      status: formData.status,
+      metadata,
+    };
     
     try {
       if (editingRecord) {
-        const { error } = await supabase
+        const { data: updatedRecord, error } = await supabase
           .from('index_records')
-          .update({
-            index_number: formData.index_number.toUpperCase(),
-            full_name: formData.full_name,
-            photo_url: formData.photo_url || null,
-            organization: institution?.name || formData.organization,
-            issued_at: formData.issued_at,
-            expires_at: formData.expires_at,
-            status: formData.status,
-            metadata: { registered_student: formData.registered_student },
-          })
-          .eq('id', editingRecord.id);
+          .update(recordValues)
+          .eq('id', editingRecord.id)
+          .eq('institution_id', institutionId)
+          .select('*')
+          .maybeSingle();
 
         if (error) throw error;
+        if (!updatedRecord) {
+          throw new Error('The record could not be updated. It may no longer exist or belong to the active institution.');
+        }
+
+        setRecords((current) => current.map((record) => (
+          record.id === updatedRecord.id ? updatedRecord : record
+        )));
         toast({ title: 'Record updated successfully' });
       } else {
         const { error } = await supabase
           .from('index_records')
           .insert({
-            index_number: formData.index_number.toUpperCase(),
-            full_name: formData.full_name,
-            photo_url: formData.photo_url || null,
-            organization: institution?.name || formData.organization,
-            issued_at: formData.issued_at,
-            expires_at: formData.expires_at,
-            status: formData.status,
-            metadata: { registered_student: formData.registered_student },
+            ...recordValues,
             created_by: user?.id,
             institution_id: institutionId,
           });
@@ -315,7 +328,7 @@ registered_student: true,
       setIsDialogOpen(false);
       setEditingRecord(null);
       resetForm();
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       toast({
         title: 'Error',
