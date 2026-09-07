@@ -194,14 +194,21 @@ registered_student: true,
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch records
-      const { data: recordsData, error: recordsError } = await supabase
+      // Fetch records for the active institution only
+      let recordsQuery = supabase
         .from('index_records')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (institutionId) {
+        recordsQuery = recordsQuery.eq('institution_id', institutionId);
+      }
+
+      const { data: recordsData, error: recordsError } = await recordsQuery;
+
       if (recordsError) throw recordsError;
       setRecords(recordsData || []);
+
 
       // Fetch verification logs
       const { data: logsData, error: logsError } = await supabase
