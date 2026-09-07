@@ -148,6 +148,31 @@ registered_student: true,
     }
   }, [isAdmin, institutionId]);
 
+  // Keep the records list in sync with the database
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-index-records')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'index_records' },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isAdmin, institutionId]);
+
+
   const fetchUserInstitutions = async () => {
     if (!user) return;
     try {
