@@ -18,6 +18,7 @@ import SuperAdmin from "./pages/SuperAdmin";
 import InstitutionSettings from "./pages/InstitutionSettings";
 import Docs from "./pages/Docs";
 import Activity from "./pages/Activity";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
                 <Route path="/super-admin" element={<SuperAdmin />} />
                 <Route path="/docs" element={<Docs />} />
                 <Route path="/activity" element={<Activity />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
