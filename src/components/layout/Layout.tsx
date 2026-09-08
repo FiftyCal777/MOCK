@@ -13,8 +13,10 @@ export function Layout({ children }: LayoutProps) {
         {children}
       </main>
       <footer className="border-t border-border py-6 mt-auto">
-        <div className="container text-center text-sm text-muted-foreground">
+        <div className="container flex flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground sm:flex-row sm:gap-4">
           <p>&copy; {new Date().getFullYear()} VerifyID. All rights reserved.</p>
+          <span className="hidden sm:inline" aria-hidden="true">|</span>
+          <a className="hover:text-foreground transition-colors" href="/privacy-policy">Privacy Policy</a>
         </div>
       </footer>
     </div>
