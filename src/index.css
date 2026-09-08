@@ -179,6 +179,14 @@
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
+
+  .loading-shimmer {
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: shimmerText 1.4s linear infinite;
+  }
 }
 
 @keyframes fadeIn {
@@ -218,6 +226,36 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes pixel-on {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes shimmerText {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-shimmer {
+    animation: none;
+  }
+
+  [style*="pixel-on"] {
+    animation: none !important;
   }
 }
 
@@ -580,4 +618,4 @@
   .submit-button { font-size: 15px; height: 48px; }
 }
 
-
+

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import LoadingState from '@/components/LoadingState';
 
 interface StaffMember {
   id: string;
@@ -292,7 +293,7 @@ export default function InstitutionSettings() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <LoadingState label="Checking session" />
         </div>
       </Layout>
     );

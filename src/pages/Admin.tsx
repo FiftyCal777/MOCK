@@ -36,6 +36,7 @@ Plus,
 import { useToast } from '@/hooks/use-toast';
 import { isStoragePhoto, resolvePhotoUrl } from '@/lib/photo';
 import type { Json } from '@/integrations/supabase/types';
+import LoadingState from '@/components/LoadingState';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -608,7 +609,7 @@ const resetForm = () => {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <LoadingState label="Checking session" />
         </div>
       </Layout>
     );

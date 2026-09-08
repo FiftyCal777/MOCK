@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import LoadingState from '@/components/LoadingState';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,7 +89,7 @@ export default function Activity() {
     return (
       <Layout>
         <div className="flex justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <LoadingState label="Loading activity" />
         </div>
       </Layout>
     );

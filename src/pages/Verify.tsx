@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, CheckCircle2, XCircle, User, Building2, Calendar, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { resolvePhotoUrl } from '@/lib/photo';
+import LoadingState from '@/components/LoadingState';
 
 interface VerificationResult {
   found: boolean;
@@ -56,7 +57,7 @@ const [result, setResult] = useState<VerificationResult | null>(null);
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <LoadingState label="Loading verification" />
         </div>
       </Layout>
     );
