@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import LoadingState from '@/components/LoadingState';
 import { 
   Search, 
   Loader2, 
@@ -398,7 +399,7 @@ export default function Dashboard() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <LoadingState label="Loading dashboard" />
         </div>
       </Layout>
     );

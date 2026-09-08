@@ -4,6 +4,7 @@ import { Shield, Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import LoadingState from '@/components/LoadingState';
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -46,7 +47,7 @@ export default function Auth() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <LoadingState label="Checking session" />
       </div>
     );
   }
