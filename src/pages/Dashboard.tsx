@@ -134,7 +134,7 @@ export default function Dashboard() {
             description: 'Your identity provider has been linked and your join request is pending administrator approval.',
           });
 
-          await refreshAuth();
+          await refreshInstitution();
           await fetchUserInstitutions();
           searchParams.delete('autoJoin');
           setSearchParams(searchParams, { replace: true });

@@ -215,7 +215,7 @@ export default function InstitutionSettings() {
 
       if (recordsError) throw recordsError;
 
-      await refreshAuth();
+      await refreshInstitution();
       toast({ title: 'Settings saved successfully' });
     } catch (error: any) {
       toast({

@@ -208,7 +208,7 @@ registered_student: true,
         description: 'Now viewing a different institution.',
       });
       
-      await refreshAuth();
+      await refreshInstitution();
       await fetchUserInstitutions();
     } catch (error: any) {
       console.error('Switch error:', error);
