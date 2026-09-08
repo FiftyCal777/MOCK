@@ -35,6 +35,7 @@ Plus,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { isStoragePhoto, resolvePhotoUrl } from '@/lib/photo';
+import type { Json } from '@/integrations/supabase/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +54,7 @@ interface IndexRecord {
   issued_at: string;
   expires_at: string;
   status: 'active' | 'inactive' | 'expired';
-  metadata: Record<string, unknown> | null;
+  metadata: unknown;
   created_at: string;
 }
 
@@ -100,6 +101,7 @@ const { toast } = useToast();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isSavingRecord, setIsSavingRecord] = useState(false);
 
   const [formData, setFormData] = useState<{
     index_number: string;
@@ -147,6 +149,31 @@ registered_student: true,
       fetchData();
     }
   }, [isAdmin, institutionId]);
+
+  // Keep the records list in sync with the database
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-index-records')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'index_records' },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isAdmin, institutionId]);
+
 
   const fetchUserInstitutions = async () => {
     if (!user) return;
@@ -198,14 +225,21 @@ registered_student: true,
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch records
-      const { data: recordsData, error: recordsError } = await supabase
+      // Fetch records for the active institution only
+      let recordsQuery = supabase
         .from('index_records')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (institutionId) {
+        recordsQuery = recordsQuery.eq('institution_id', institutionId);
+      }
+
+      const { data: recordsData, error: recordsError } = await recordsQuery;
+
       if (recordsError) throw recordsError;
       setRecords(recordsData || []);
+
 
       // Fetch verification logs
       const { data: logsData, error: logsError } = await supabase
@@ -277,37 +311,51 @@ registered_student: true,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingPhoto || isSavingRecord) return;
+    setIsSavingRecord(true);
+
+    const existingMetadata = editingRecord?.metadata;
+    const metadata: Json = existingMetadata && typeof existingMetadata === 'object' && !Array.isArray(existingMetadata)
+      ? {
+          ...(existingMetadata as Record<string, Json | undefined>),
+          registered_student: formData.registered_student,
+        }
+      : { registered_student: formData.registered_student };
+    const recordValues = {
+      index_number: formData.index_number.trim().toUpperCase(),
+      full_name: formData.full_name.trim(),
+      photo_url: formData.photo_url.trim() || null,
+      organization: formData.organization.trim(),
+      issued_at: formData.issued_at,
+      expires_at: formData.expires_at,
+      status: formData.status,
+      metadata,
+    };
     
     try {
       if (editingRecord) {
-        const { error } = await supabase
+        const { data: updatedRecord, error } = await supabase
           .from('index_records')
-          .update({
-            index_number: formData.index_number.toUpperCase(),
-            full_name: formData.full_name,
-            photo_url: formData.photo_url || null,
-            organization: institution?.name || formData.organization,
-            issued_at: formData.issued_at,
-            expires_at: formData.expires_at,
-            status: formData.status,
-            metadata: { registered_student: formData.registered_student },
-          })
-          .eq('id', editingRecord.id);
+          .update(recordValues)
+          .eq('id', editingRecord.id)
+          .eq('institution_id', institutionId)
+          .select('*')
+          .maybeSingle();
 
         if (error) throw error;
+        if (!updatedRecord) {
+          throw new Error('The record could not be updated. It may no longer exist or belong to the active institution.');
+        }
+
+        setRecords((current) => current.map((record) => (
+          record.id === updatedRecord.id ? updatedRecord : record
+        )));
         toast({ title: 'Record updated successfully' });
       } else {
         const { error } = await supabase
           .from('index_records')
           .insert({
-            index_number: formData.index_number.toUpperCase(),
-            full_name: formData.full_name,
-            photo_url: formData.photo_url || null,
-            organization: institution?.name || formData.organization,
-            issued_at: formData.issued_at,
-            expires_at: formData.expires_at,
-            status: formData.status,
-            metadata: { registered_student: formData.registered_student },
+            ...recordValues,
             created_by: user?.id,
             institution_id: institutionId,
           });
@@ -319,13 +367,15 @@ registered_student: true,
       setIsDialogOpen(false);
       setEditingRecord(null);
       resetForm();
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to save record.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSavingRecord(false);
     }
   };
 
@@ -478,13 +528,40 @@ const resetForm = () => {
     setIsUploadingPhoto(true);
     try {
       const fileName = `${institutionId}/${crypto.randomUUID()}.${fileExt}`;
+      const previousPhoto = formData.photo_url;
       const { error: uploadError } = await supabase.storage
         .from('identity-photos')
         .upload(fileName, file, { upsert: false, contentType: file.type });
       if (uploadError) throw uploadError;
 
+      // Existing records are updated as part of the upload so the file cannot
+      // be left in storage without being attached to its identity card.
+      if (editingRecord) {
+        const { error: attachError } = await supabase
+          .from('index_records')
+          .update({ photo_url: fileName })
+          .eq('id', editingRecord.id);
+
+        if (attachError) {
+          await supabase.storage.from('identity-photos').remove([fileName]);
+          throw attachError;
+        }
+
+        setEditingRecord({ ...editingRecord, photo_url: fileName });
+        setRecords((current) => current.map((record) => (
+          record.id === editingRecord.id ? { ...record, photo_url: fileName } : record
+        )));
+
+        if (previousPhoto && isStoragePhoto(previousPhoto) && previousPhoto !== fileName) {
+          await supabase.storage.from('identity-photos').remove([previousPhoto]);
+        }
+      }
+
       setFormData((prev) => ({ ...prev, photo_url: fileName }));
-      toast({ title: 'Photo uploaded successfully' });
+      toast({
+        title: editingRecord ? 'Photo attached to record' : 'Photo ready to save',
+        description: editingRecord ? 'The identity card now uses this photo.' : 'Select Create to finish adding the record.',
+      });
     } catch (error: any) {
       console.error('Photo upload error:', error);
       toast({
@@ -500,6 +577,27 @@ const resetForm = () => {
 
   const handleRemovePhoto = async () => {
     const current = formData.photo_url;
+    if (editingRecord) {
+      const { error } = await supabase
+        .from('index_records')
+        .update({ photo_url: null })
+        .eq('id', editingRecord.id);
+
+      if (error) {
+        toast({
+          title: 'Could not remove photo',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setEditingRecord({ ...editingRecord, photo_url: null });
+      setRecords((records) => records.map((record) => (
+        record.id === editingRecord.id ? { ...record, photo_url: null } : record
+      )));
+    }
+
     setFormData((prev) => ({ ...prev, photo_url: '' }));
     if (current && isStoragePhoto(current)) {
       await supabase.storage.from('identity-photos').remove([current]);
@@ -549,10 +647,17 @@ const resetForm = () => {
     );
   });
 
+  const getEffectiveStatus = (record: { status: string; expires_at: string }) => {
+    if (record.status === 'inactive') return 'inactive';
+    const expiry = new Date(record.expires_at);
+    if (!isNaN(expiry.getTime()) && expiry < new Date()) return 'expired';
+    return record.status;
+  };
+
   const stats = {
     total: records.length,
-    active: records.filter((r) => r.status === 'active').length,
-    inactive: records.filter((r) => r.status === 'inactive').length,
+    active: records.filter((r) => getEffectiveStatus(r) === 'active').length,
+    inactive: records.filter((r) => getEffectiveStatus(r) === 'inactive').length,
     verifications: logs.length,
   };
 
@@ -568,6 +673,7 @@ const resetForm = () => {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
 
   return (
     <Layout>
@@ -638,7 +744,7 @@ const resetForm = () => {
                   Add Record
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">
                   {editingRecord ? 'Edit Record' : 'Add New Record'}
@@ -647,169 +753,174 @@ const resetForm = () => {
                   {editingRecord ? 'Update the identity record details.' : 'Create a new identity record.'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="index_number">Identification Number</Label>
-                    <Input
-                      id="index_number"
-                      placeholder="ID-2024-001"
-                      value={formData.index_number}
-                      onChange={(e) => setFormData({ ...formData, index_number: e.target.value.toUpperCase() })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registered_student">Student Registration</Label>
-                  <Select
-                    value={formData.registered_student ? 'registered' : 'unregistered'}
-                    onValueChange={(value) => setFormData({ ...formData, registered_student: value === 'registered' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="registered">Registered</SelectItem>
-                      <SelectItem value="unregistered">Not Registered</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name</Label>
-                  <Input
-                    id="full_name"
-                    placeholder="John Doe"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="organization">Organization</Label>
-                  <Input
-                    id="organization"
-                    placeholder="Acme Corporation"
-                    value={formData.organization}
-                    onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                    required
-                  />
-                </div>
-<div className="space-y-2">
-                  <Label>Photo (optional)</Label>
-                  {previewUrl ? (
-                    <div className="flex items-center gap-3 rounded-lg border border-border p-3">
-                      <img
-                        src={previewUrl}
-                        alt="Record photo preview"
-                        className="h-16 w-16 rounded-lg object-cover border border-border"
-                      />
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => photoInputRef.current?.click()}
-                          disabled={isUploadingPhoto}
-                        >
-                          {isUploadingPhoto ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <ImagePlus className="h-4 w-4 mr-2" />
-                          )}
-                          Replace
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={handleRemovePhoto}>
-                          <X className="h-4 w-4 mr-2" />
-                          Remove
-                        </Button>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
+                  {/* Photo column */}
+                  <div className="space-y-3">
+                    <Label>Photo (optional)</Label>
+                    {previewUrl ? (
+                      <div className="rounded-lg border border-border p-3 space-y-3">
+                        <img
+                          src={previewUrl}
+                          alt="Record photo preview"
+                          className="w-full aspect-square rounded-lg object-cover border border-border"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => photoInputRef.current?.click()}
+                            disabled={isUploadingPhoto}
+                          >
+                            {isUploadingPhoto ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <ImagePlus className="h-4 w-4 mr-2" />
+                            )}
+                            Replace
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" className="text-destructive flex-1" onClick={handleRemovePhoto}>
+                            <X className="h-4 w-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="flex flex-col items-center justify-center py-6 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors"
-                      onClick={() => photoInputRef.current?.click()}
-                    >
-                      {isUploadingPhoto ? (
-                        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-                      ) : (
-                        <ImagePlus className="h-6 w-6 text-muted-foreground mb-2" />
-                      )}
-                      <p className="text-sm font-medium">{isUploadingPhoto ? 'Uploading...' : 'Click to upload a photo'}</p>
-                      <p className="text-xs text-muted-foreground mt-1">JPG, PNG or WebP — max 2MB</p>
-                    </div>
-                  )}
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                    disabled={isUploadingPhoto}
-                  />
-                  <div className="pt-1">
-                    <Label htmlFor="photo_url" className="text-xs text-muted-foreground">
-                      ...or paste an image URL (optional)
-                    </Label>
-                    <Input
-                      id="photo_url"
-                      type="url"
-                      placeholder="https://example.com/photo.jpg"
-                      value={isStoragePhoto(formData.photo_url) ? '' : formData.photo_url}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value && isStoragePhoto(formData.photo_url)) {
-                          supabase.storage.from('identity-photos').remove([formData.photo_url]);
-                        }
-                        setFormData({ ...formData, photo_url: value });
-                      }}
+                    ) : (
+                      <div
+                        className="flex flex-col items-center justify-center py-8 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors"
+                        onClick={() => photoInputRef.current?.click()}
+                      >
+                        {isUploadingPhoto ? (
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                        ) : (
+                          <ImagePlus className="h-8 w-8 text-muted-foreground mb-2" />
+                        )}
+                        <p className="text-sm font-medium">{isUploadingPhoto ? 'Uploading...' : 'Click to upload a photo'}</p>
+                        <p className="text-xs text-muted-foreground mt-1">JPG, PNG or WebP — max 2MB</p>
+                      </div>
+                    )}
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      disabled={isUploadingPhoto}
                     />
+                    <div className="pt-1">
+                      <Label htmlFor="photo_url" className="text-xs text-muted-foreground">
+                        ...or paste an image URL (optional)
+                      </Label>
+                      <Input
+                        id="photo_url"
+                        type="url"
+                        placeholder="https://example.com/photo.jpg"
+                        value={isStoragePhoto(formData.photo_url) ? '' : formData.photo_url}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value && isStoragePhoto(formData.photo_url)) {
+                            supabase.storage.from('identity-photos').remove([formData.photo_url]);
+                          }
+                          setFormData({ ...formData, photo_url: value });
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fields column */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
+                    <div className="space-y-2">
+                      <Label htmlFor="index_number">Identification Number</Label>
+                      <Input
+                        id="index_number"
+                        placeholder="ID-2024-001"
+                        value={formData.index_number}
+                        onChange={(e) => setFormData({ ...formData, index_number: e.target.value.toUpperCase() })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="registered_student">Student Registration</Label>
+                      <Select
+                        value={formData.registered_student ? 'registered' : 'unregistered'}
+                        onValueChange={(value) => setFormData({ ...formData, registered_student: value === 'registered' })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="registered">Registered</SelectItem>
+                          <SelectItem value="unregistered">Not Registered</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="full_name">Full Name</Label>
+                      <Input
+                        id="full_name"
+                        placeholder="John Doe"
+                        value={formData.full_name}
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="organization">Organization</Label>
+                      <Input
+                        id="organization"
+                        placeholder="Acme Corporation"
+                        value={formData.organization}
+                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="issued_at">Issue Date</Label>
+                      <Input
+                        id="issued_at"
+                        type="date"
+                        value={formData.issued_at}
+                        onChange={(e) => setFormData({ ...formData, issued_at: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="expires_at">Expiry Date</Label>
+                      <Input
+                        id="expires_at"
+                        type="date"
+                        value={formData.expires_at}
+                        onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="issued_at">Issue Date</Label>
-                    <Input
-                      id="issued_at"
-                      type="date"
-                      value={formData.issued_at}
-                      onChange={(e) => setFormData({ ...formData, issued_at: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="expires_at">Expiry Date</Label>
-                    <Input
-                      id="expires_at"
-                      type="date"
-                      value={formData.expires_at}
-                      onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-4">
+                <div className="flex justify-end gap-2 pt-2 border-t">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" className="gradient-primary border-0">
-                    {editingRecord ? 'Update' : 'Create'}
+                  <Button type="submit" className="gradient-primary border-0" disabled={isUploadingPhoto || isSavingRecord}>
+                    {(isUploadingPhoto || isSavingRecord) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isUploadingPhoto ? 'Uploading photo' : isSavingRecord ? 'Saving' : editingRecord ? 'Update' : 'Create'}
                   </Button>
                 </div>
               </form>
@@ -922,7 +1033,7 @@ const resetForm = () => {
                             <TableCell className="font-mono">{record.index_number}</TableCell>
                             <TableCell>{record.full_name}</TableCell>
                             <TableCell>{getRecordOrganization(record)}</TableCell>
-                            <TableCell>{getStatusBadge(record.status)}</TableCell>
+                            <TableCell>{getStatusBadge(getEffectiveStatus(record))}</TableCell>
                             <TableCell>{new Date(record.expires_at).toLocaleDateString()}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
