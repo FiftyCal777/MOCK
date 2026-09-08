@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "favicon.png", "favicon.ico"],
+      includeAssets: ["favicon.svg", "favicon.ico"],
       manifest: {
         name: "VerifyID - Digital Identity Verification",
         short_name: "VerifyID",
@@ -31,12 +31,6 @@ export default defineConfig(({ mode }) => ({
             sizes: "any",
             type: "image/svg+xml",
             purpose: "any maskable",
-          },
-          {
-            src: "/favicon.png",
-            sizes: "64x64",
-            type: "image/png",
-            purpose: "any",
           },
         ],
       },
