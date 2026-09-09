@@ -320,16 +320,6 @@ export default function Dashboard() {
     }
 
     try {
-      // Check if user has an OAuth provider linked
-      const hasOAuth = checkHasOAuthProvider();
-      console.log('checkHasOAuthProvider result:', hasOAuth);
-
-      if (!hasOAuth) {
-        setShowInstitutionModal(false);
-        setShowLinkIdentityModal(true);
-        return;
-      }
-
       setIsOnboardingLoading(true);
       const { error } = await supabase.rpc('join_institution_for_current_user', {
         _institution_id: selectedInstitution,
