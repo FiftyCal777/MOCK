@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, CheckCircle2, XCircle, User, Building2, Calendar, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { gooeyToast } from 'goey-toast';
+import { gooeyToast, GooeyToaster } from 'goey-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { resolvePhotoUrl } from '@/lib/photo';
 import LoadingState from '@/components/LoadingState';
@@ -293,51 +293,8 @@ export default function Verify() {
             )}
 
             {result && !result.found && (
-              <motion.div
-                key="not-found-gooey-toast"
-                initial={{ opacity: 0, scale: 0.9, y: 12 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                className="relative overflow-hidden rounded-2xl md:rounded-3xl border-2 border-destructive/40 bg-destructive/10 dark:bg-destructive/20 p-5 sm:p-7 md:p-10 shadow-2xl shadow-destructive/15 backdrop-blur-md"
-              >
-                {/* Background gooey ambient glow blobs */}
-                <div className="absolute -top-12 -right-12 h-40 w-40 md:h-56 md:w-56 rounded-full bg-destructive/20 blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-12 -left-12 h-40 w-40 md:h-56 md:w-56 rounded-full bg-destructive/15 blur-3xl pointer-events-none" />
-
-                <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6">
-                  <div className="flex items-start sm:items-center gap-4 md:gap-6">
-                    {/* Gooey Animated Icon Container */}
-                    <motion.div
-                      animate={{ scale: [1, 1.08, 1] }}
-                      transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-                      className="flex-shrink-0 flex h-12 w-12 sm:h-14 sm:w-14 md:h-20 md:w-20 items-center justify-center rounded-2xl bg-destructive/20 text-destructive border border-destructive/30 shadow-inner"
-                    >
-                      <XCircle className="h-7 w-7 sm:h-8 sm:w-8 md:h-12 md:w-12 text-destructive" />
-                    </motion.div>
-
-                    {/* Text content - Large on PC (md:) */}
-                    <div className="space-y-1 md:space-y-2">
-                      <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                        <h3 className="font-display font-extrabold text-destructive text-xl sm:text-2xl md:text-4xl tracking-tight">
-                          Not Found
-                        </h3>
-                      </div>
-                      <p className="text-muted-foreground text-sm sm:text-base md:text-xl font-medium leading-relaxed max-w-xl">
-                        No verified record matches this identification number. Please verify the ID and try again.
-                      </p>
-                    </div>
-                  </div>
-
-                  <Badge
-                    variant="destructive"
-                    className="px-3 py-1 sm:px-4 sm:py-1.5 md:px-5 md:py-2 text-xs sm:text-sm md:text-base font-semibold rounded-full shadow-lg self-start sm:self-center"
-                  >
-                    Not Registered
-                  </Badge>
-                </div>
-              </motion.div>
-            )}
+  <GooeyToaster position="top-left" />
+)}
           </AnimatePresence>
 
           {!result && (
