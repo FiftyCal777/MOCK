@@ -649,4 +649,24 @@
   .submit-button { font-size: 15px; height: 48px; }
 }
 
+/* ==========================================================================
+   Toast Font Size Overrides (+30% Total)
+   ========================================================================== */
+.gooey-title {
+  font-size: 15.8px !important;
+}
+.gooey-description {
+  font-size: 17.2px !important;
+}
+.gooey-timestamp {
+  font-size: 14.5px !important;
+}
+.gooey-actionButton {
+  font-size: 17.2px !important;
+}
+[data-sonner-toast] {
+  font-size: 17.2px !important;
+}
+
+
 
