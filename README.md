@@ -1,4 +1,4 @@
-# 🛡️ VerifyID — Enterprise Digital Identity Verification Platform
+# VerifyID — Enterprise Digital Identity Verification Platform
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -11,19 +11,19 @@
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-### 🔍 1. Real-Time Identity Lookup & Verification
+### 1. Real-Time Identity Lookup & Verification
 - **Instant Search**: Look up records by identification number with zero-latency response.
 - **Rich Verification Cards**: Displays full legal name, passport/ID photo, organization, valid date range, and status badges (*Active*, *Expired*, *Registered*).
 - **Gooey Toast Alerts**: Contextual gooey morphing notifications for verification results, errors, and system state feedback.
 
-### 🏢 2. Multi-Tenant Institution Management
+### 2. Multi-Tenant Institution Management
 - **Tenant Isolation**: Independent data management and record scope per institution.
 - **Custom Branding**: Configurable institution logos, custom color schemes, and customized welcome messages.
 - **Policy Controls**: Granular toggles for enforcing record expiration, requiring photo verification, and allowing public lookup.
 
-### 🔐 3. Role-Based Access Control (RBAC) & Security
+### 3. Role-Based Access Control (RBAC) & Security
 - **Triple-Tier Roles**:
   - **`super_admin`**: Platform-wide monitoring, global institution provisioning, system audit logs, and metrics.
   - **`admin`**: Institution-level record management, staff role assignment, bulk dataset imports, and branding configuration.
@@ -31,21 +31,21 @@
 - **Supabase Authentication**: Secure session management supporting Email/Password, Magic Link, and OAuth (Google & GitHub).
 - **Row-Level Security (RLS)**: Enforced PostgreSQL RLS policies ensuring database-level data protection.
 
-### 📊 4. Metrics, Analytics & Audit Logging
+### 4. Metrics, Analytics & Audit Logging
 - **Real-Time Dashboards**: Interactive metrics cards displaying Total Verifications, Successful Verifications, and Failed / No-Match attempts with trend charts.
 - **Audit Trails**: Security logs tracking IP address, operator ID, verification timestamp, and result history.
 
-### 📁 5. Bulk Data Ingestion Engine
+### 5. Bulk Data Ingestion Engine
 - **CSV & Excel Uploads**: Import thousands of records simultaneously with automated column mapping (`index_number`, `full_name`, `organization`, `issued_at`, `expires_at`).
 - **Validation & Error Reporting**: Row-by-row pre-ingestion validation preventing duplicate entries and invalid date formats.
 
-### 🔌 6. Developer API & Documentation Portal
+### 6. Developer API & Documentation Portal
 - **Interactive API Docs**: Integrated documentation (`/docs`) with code examples in cURL, JavaScript, and Python.
 - **Key Management**: Generation and revocation of API tokens for headless third-party system integrations.
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## Architecture & Technology Stack
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
@@ -60,7 +60,7 @@
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 
 ```
 .
@@ -98,7 +98,7 @@
 
 ---
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -146,7 +146,7 @@ The production-ready static bundle will be generated inside the `dist/` director
 
 ---
 
-## 🗄️ Database Schema & RLS
+## Database Schema & RLS
 
 The database is built on PostgreSQL via Supabase with Row Level Security enabled. Key tables include:
 
@@ -186,7 +186,7 @@ erDiagram
 
 ---
 
-## 🚀 Deployment Guide
+## Deployment Guide
 
 ### Deploying on Vercel
 
@@ -199,6 +199,6 @@ erDiagram
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the **MIT License**. See `LICENSE` for more information.
