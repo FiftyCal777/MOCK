@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, CheckCircle2, XCircle, User, Building2, Calendar, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { gooeyToast } from 'goey-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { resolvePhotoUrl } from '@/lib/photo';
 import LoadingState from '@/components/LoadingState';
 
@@ -33,7 +35,7 @@ export default function Verify() {
   const { institutionId } = useInstitution();
   const [indexNumber, setIndexNumber] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-const [result, setResult] = useState<VerificationResult | null>(null);
+  const [result, setResult] = useState<VerificationResult | null>(null);
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
 
   // Resolve the record photo (storage path or external URL) into a displayable URL
@@ -100,10 +102,8 @@ const [result, setResult] = useState<VerificationResult | null>(null);
     e.preventDefault();
     
     if (!indexNumber.trim()) {
-      toast({
-        title: 'Identification number required',
+      gooeyToast.error('Identification number required', {
         description: 'Please enter an identification number to verify.',
-        variant: 'destructive',
       });
       return;
     }
@@ -122,10 +122,8 @@ const [result, setResult] = useState<VerificationResult | null>(null);
 
       if (error) {
         console.error('Search error:', error);
-        toast({
-          title: 'Search failed',
+        gooeyToast.error('Search failed', {
           description: 'An error occurred while searching. Please try again.',
-          variant: 'destructive',
         });
         return;
       }
@@ -139,6 +137,13 @@ const [result, setResult] = useState<VerificationResult | null>(null);
         institution_id: institutionId,
       });
 
+      if (!data) {
+        gooeyToast.error('Not Found', {
+          description: `No verified record matches identification number "${indexNumber.trim().toUpperCase()}".`,
+          duration: 5000,
+        });
+      }
+
       setResult({
         found: data !== null,
         data: data
@@ -148,10 +153,8 @@ const [result, setResult] = useState<VerificationResult | null>(null);
 
     } catch (err) {
       console.error('Verification error:', err);
-      toast({
-        title: 'Error',
+      gooeyToast.error('Error', {
         description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
       });
     } finally {
       setIsSearching(false);
@@ -197,12 +200,18 @@ const [result, setResult] = useState<VerificationResult | null>(null);
             </CardContent>
           </Card>
 
-          {result && (
-            <Card className={`animate-scale-in ${result.found ? 'border-success/50' : 'border-destructive/50'}`}>
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  {result.found ? (
-                    <>
+          <AnimatePresence mode="wait">
+            {result && result.found && result.data && (
+              <motion.div
+                key="found-card"
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              >
+                <Card className="border-success/50 animate-scale-in">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/20">
                         <CheckCircle2 className="h-5 w-5 text-success" />
                       </div>
@@ -210,94 +219,126 @@ const [result, setResult] = useState<VerificationResult | null>(null);
                         <CardTitle className="text-lg font-display">Identity Verified</CardTitle>
                         <CardDescription>Record found in the database</CardDescription>
                       </div>
-                    </>
-                  ) : (
-                      <>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/20">
-                        <XCircle className="h-5 w-5 text-destructive" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg font-display">Not Found</CardTitle>
-                        <CardDescription>No verified record matches this identification number</CardDescription>
-                      </div>
-                      <Badge variant="destructive" className="ml-auto">
-                        Not Registered
-                      </Badge>
-                    </>
-                  )}
-                </div>
-              </CardHeader>
-
-              {result.found && result.data && (
-                <CardContent className="pt-0">
-                  {isExpired && (
-                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-warning/20 p-3 text-warning-foreground">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-sm font-medium">This ID has expired</span>
                     </div>
-                  )}
+                  </CardHeader>
 
-                  <div className="flex flex-col sm:flex-row gap-6">
-{photoSrc ? (
-                      <div className="flex-shrink-0">
-                        <img
-                          src={photoSrc}
-                          alt={result.data.full_name}
-                          className="h-32 w-32 rounded-xl object-cover border border-border"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex-shrink-0 h-32 w-32 rounded-xl bg-secondary flex items-center justify-center border border-border">
-                        <User className="h-12 w-12 text-muted-foreground" />
+                  <CardContent className="pt-0">
+                    {isExpired && (
+                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-warning/20 p-3 text-warning-foreground">
+                        <AlertCircle className="h-4 w-4" />
+                        <span className="text-sm font-medium">This ID has expired</span>
                       </div>
                     )}
 
-                    <div className="flex-1 space-y-4">
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-1">Full Name</div>
-                        <div className="font-display text-lg font-semibold">{result.data.full_name}</div>
-                      </div>
+                    <div className="flex flex-col sm:flex-row gap-6">
+                      {photoSrc ? (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={photoSrc}
+                            alt={result.data.full_name}
+                            className="h-32 w-32 rounded-xl object-cover border border-border"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-shrink-0 h-32 w-32 rounded-xl bg-secondary flex items-center justify-center border border-border">
+                          <User className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
 
-                      <div className="flex flex-wrap gap-4">
+                      <div className="flex-1 space-y-4">
                         <div>
-                          <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
-                            <Building2 className="h-3 w-3" />
-                            Organization
+                          <div className="text-sm text-muted-foreground mb-1">Full Name</div>
+                          <div className="font-display text-lg font-semibold">{result.data.full_name}</div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4">
+                          <div>
+                            <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              Organization
+                            </div>
+                            <div className="font-medium">
+                              {result.data.institutions?.name ?? result.data.organization}
+                            </div>
                           </div>
-                          <div className="font-medium">
-                            {result.data.institutions?.name ?? result.data.organization}
+
+                          <div>
+                            <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Valid Period
+                            </div>
+                            <div className="font-medium">
+                              {new Date(result.data.issued_at).toLocaleDateString()} -{' '}
+                              {new Date(result.data.expires_at).toLocaleDateString()}
+                            </div>
                           </div>
                         </div>
 
-                        <div>
-                          <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            Valid Period
-                          </div>
-                          <div className="font-medium">
-                            {new Date(result.data.issued_at).toLocaleDateString()} -{' '}
-                            {new Date(result.data.expires_at).toLocaleDateString()}
-                          </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={isExpired ? 'destructive' : 'default'} className={!isExpired ? 'bg-success' : ''}>
+                            {isExpired ? 'Expired' : 'Active'}
+                          </Badge>
+                          <Badge variant="outline" className={isRegisteredStudent ? 'border-success text-success' : 'border-destructive text-destructive'}>
+                            {isRegisteredStudent ? 'Registered' : 'Not Registered'}
+                          </Badge>
+                          <Badge variant="outline" className="uppercase">
+                            {result.data.index_number}
+                          </Badge>
                         </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={isExpired ? 'destructive' : 'default'} className={!isExpired ? 'bg-success' : ''}>
-                          {isExpired ? 'Expired' : 'Active'}
-                        </Badge>
-                        <Badge variant="outline" className={isRegisteredStudent ? 'border-success text-success' : 'border-destructive text-destructive'}>
-                          {isRegisteredStudent ? 'Registered' : 'Not Registered'}
-                        </Badge>
-                        <Badge variant="outline" className="uppercase">
-                          {result.data.index_number}
-                        </Badge>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {result && !result.found && (
+              <motion.div
+                key="not-found-gooey-toast"
+                initial={{ opacity: 0, scale: 0.9, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                className="relative overflow-hidden rounded-2xl md:rounded-3xl border-2 border-destructive/40 bg-destructive/10 dark:bg-destructive/20 p-5 sm:p-7 md:p-10 shadow-2xl shadow-destructive/15 backdrop-blur-md"
+              >
+                {/* Background gooey ambient glow blobs */}
+                <div className="absolute -top-12 -right-12 h-40 w-40 md:h-56 md:w-56 rounded-full bg-destructive/20 blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-12 -left-12 h-40 w-40 md:h-56 md:w-56 rounded-full bg-destructive/15 blur-3xl pointer-events-none" />
+
+                <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6">
+                  <div className="flex items-start sm:items-center gap-4 md:gap-6">
+                    {/* Gooey Animated Icon Container */}
+                    <motion.div
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                      className="flex-shrink-0 flex h-12 w-12 sm:h-14 sm:w-14 md:h-20 md:w-20 items-center justify-center rounded-2xl bg-destructive/20 text-destructive border border-destructive/30 shadow-inner"
+                    >
+                      <XCircle className="h-7 w-7 sm:h-8 sm:w-8 md:h-12 md:w-12 text-destructive" />
+                    </motion.div>
+
+                    {/* Text content - Large on PC (md:) */}
+                    <div className="space-y-1 md:space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                        <h3 className="font-display font-extrabold text-destructive text-xl sm:text-2xl md:text-4xl tracking-tight">
+                          Not Found
+                        </h3>
+                      </div>
+                      <p className="text-muted-foreground text-sm sm:text-base md:text-xl font-medium leading-relaxed max-w-xl">
+                        No verified record matches this identification number. Please verify the ID and try again.
+                      </p>
+                    </div>
                   </div>
-                </CardContent>
-              )}
-            </Card>
-          )}
+
+                  <Badge
+                    variant="destructive"
+                    className="px-3 py-1 sm:px-4 sm:py-1.5 md:px-5 md:py-2 text-xs sm:text-sm md:text-base font-semibold rounded-full shadow-lg self-start sm:self-center"
+                  >
+                    Not Registered
+                  </Badge>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {!result && (
             <div className="text-center text-muted-foreground py-12">
