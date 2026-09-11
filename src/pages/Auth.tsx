@@ -203,6 +203,7 @@ export default function Auth() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
+                placeholder=" "
                 required
               />
               <label>Email</label>
@@ -214,6 +215,7 @@ export default function Auth() {
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
+                placeholder=" "
                 required
               />
               <label>Password</label>
@@ -290,6 +292,7 @@ export default function Auth() {
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
+                placeholder=" "
                 required
               />
               <label>Full Name</label>
@@ -301,6 +304,7 @@ export default function Auth() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
+                placeholder=" "
                 required
               />
               <label>Email</label>
@@ -312,6 +316,7 @@ export default function Auth() {
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
+                placeholder=" "
                 required
               />
               <label>Password</label>
@@ -323,6 +328,7 @@ export default function Auth() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
+                placeholder=" "
                 required
               />
               <label>Confirm Password</label>
