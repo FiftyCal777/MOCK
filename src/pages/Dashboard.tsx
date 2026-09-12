@@ -889,7 +889,7 @@ export default function Dashboard() {
 
             {isLoading ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <LoadingState label="Loading recent activity..." variant="Dots" />
               </div>
             ) : stats?.recentVerifications && stats.recentVerifications.length > 0 ? (
               <div className="space-y-2">

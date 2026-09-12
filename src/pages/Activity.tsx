@@ -125,7 +125,7 @@ export default function Activity() {
 
         {isLoading ? (
           <div className="flex justify-center py-24">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <LoadingState label="Loading activity logs..." variant="Dots" />
           </div>
         ) : filtered.length === 0 ? (
           <Card className="border-dashed">

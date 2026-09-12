@@ -19,6 +19,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import LoadingState from '@/components/LoadingState';
 
 interface ParsedRecord {
   index_number: string;
@@ -362,13 +363,15 @@ export function BulkUpload({ institutionId, userId, onComplete }: BulkUploadProp
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {isProcessing ? (
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                    <div className="py-4">
+                      <LoadingState label="Processing file..." variant="Dots" />
+                    </div>
                   ) : (
-                    <Upload className="h-12 w-12 text-muted-foreground mb-4" />
+                    <>
+                      <Upload className="h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="font-medium mb-1">Click to upload or drag and drop</p>
+                    </>
                   )}
-                  <p className="font-medium mb-1">
-                    {isProcessing ? 'Processing file...' : 'Click to upload or drag and drop'}
-                  </p>
                   <p className="text-sm text-muted-foreground">
                     CSV or Excel files (.csv, .xlsx, .xls)
                   </p>

@@ -26,6 +26,7 @@ import {
   Crown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import LoadingState from '@/components/LoadingState';
 
 interface Institution {
   id: string;
@@ -375,7 +376,7 @@ export default function SuperAdmin() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <LoadingState label="Loading Super Admin..." variant="Dots" />
         </div>
       </Layout>
     );
@@ -680,7 +681,7 @@ export default function SuperAdmin() {
               <CardContent>
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <LoadingState label="Loading institutions..." variant="Dots" />
                   </div>
                 ) : institutions.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
@@ -779,7 +780,7 @@ export default function SuperAdmin() {
               <CardContent>
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <LoadingState label="Loading administrators..." variant="Dots" />
                   </div>
                 ) : admins.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
@@ -823,7 +824,7 @@ export default function SuperAdmin() {
               <CardContent>
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <LoadingState label="Loading super admins..." variant="Dots" />
                   </div>
                 ) : superAdmins.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
