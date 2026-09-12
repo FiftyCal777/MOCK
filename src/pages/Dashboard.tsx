@@ -161,15 +161,7 @@ export default function Dashboard() {
 
   const fetchUserInstitutions = async () => {
     if (!user) return;
-    try {
-      const { data, error } = await supabase.rpc('get_user_institutions', {
-        _user_id: user.id
-      });
-      if (error) throw error;
-      setUserInstitutions(data || []);
-    } catch (err) {
-      console.error('Error fetching user institutions:', err);
-    }
+    await refreshInstitution();
   };
 
   const fetchDashboardStats = async () => {

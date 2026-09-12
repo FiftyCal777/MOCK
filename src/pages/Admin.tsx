@@ -271,7 +271,7 @@ export default function Admin() {
         if (membersError) {
           console.error('Error fetching members:', membersError);
         } else {
-          const userIds = (membersData || []).map((m) => m.user_id);
+          const userIds = (membersData || []).map((m) => m.user_id).filter((id): id is string => Boolean(id));
           let profilesById: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
           if (userIds.length > 0) {
             const { data: profilesData, error: profilesError } = await supabase
@@ -458,13 +458,22 @@ export default function Admin() {
     if (!institutionId) return;
 
     try {
-      const { error } = await supabase.rpc('update_member_status', {
-        _target_user_id: userId,
-        _institution_id: institutionId,
-        _new_status: newStatus,
-      });
+      // Direct table update on user_roles
+      const { error: directError } = await supabase
+        .from('user_roles')
+        .update({ status: newStatus })
+        .eq('user_id', userId)
+        .eq('institution_id', institutionId);
 
-      if (error) throw error;
+      if (directError) {
+        // Fallback to RPC if direct table update is restricted by RLS
+        const { error: rpcError } = await supabase.rpc('update_member_status', {
+          _target_user_id: userId,
+          _institution_id: institutionId,
+          _new_status: newStatus,
+        });
+        if (rpcError) throw rpcError;
+      }
 
       toast({
         title: newStatus === 'approved' ? 'Member approved' : 'Request rejected',
