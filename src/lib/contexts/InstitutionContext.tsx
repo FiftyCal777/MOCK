@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { applyInstitutionTheme } from '@/lib/theme';
 
 export interface Institution {
   id: string;
@@ -168,6 +169,14 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshInstitution();
   }, [user?.id, authLoading]);
+
+  useEffect(() => {
+    if (institution) {
+      applyInstitutionTheme(institution.primary_color, institution.secondary_color);
+    } else {
+      applyInstitutionTheme(null, null);
+    }
+  }, [institution?.primary_color, institution?.secondary_color]);
 
   return (
     <InstitutionContext.Provider
