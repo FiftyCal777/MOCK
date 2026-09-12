@@ -31,6 +31,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import LoadingState from '@/components/LoadingState';
+import { applyInstitutionTheme } from '@/lib/theme';
 
 interface StaffMember {
   id: string;
@@ -450,12 +451,20 @@ export default function InstitutionSettings() {
                           <Input
                             type="color"
                             value={settings.primary_color}
-                            onChange={(e) => setSettings({ ...settings, primary_color: e.target.value })}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSettings({ ...settings, primary_color: val });
+                              applyInstitutionTheme(val, settings.secondary_color);
+                            }}
                             className="w-16 h-10 p-1 cursor-pointer"
                           />
                           <Input
                             value={settings.primary_color}
-                            onChange={(e) => setSettings({ ...settings, primary_color: e.target.value })}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSettings({ ...settings, primary_color: val });
+                              applyInstitutionTheme(val, settings.secondary_color);
+                            }}
                             className="flex-1 font-mono"
                           />
                         </div>
@@ -466,12 +475,20 @@ export default function InstitutionSettings() {
                           <Input
                             type="color"
                             value={settings.secondary_color}
-                            onChange={(e) => setSettings({ ...settings, secondary_color: e.target.value })}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSettings({ ...settings, secondary_color: val });
+                              applyInstitutionTheme(settings.primary_color, val);
+                            }}
                             className="w-16 h-10 p-1 cursor-pointer"
                           />
                           <Input
                             value={settings.secondary_color}
-                            onChange={(e) => setSettings({ ...settings, secondary_color: e.target.value })}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSettings({ ...settings, secondary_color: val });
+                              applyInstitutionTheme(settings.primary_color, val);
+                            }}
                             className="flex-1 font-mono"
                           />
                         </div>
