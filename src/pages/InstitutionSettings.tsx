@@ -342,7 +342,7 @@ export default function InstitutionSettings() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <LoadingState label="Loading settings..." variant="Dots" />
           </div>
         ) : (
           <Tabs defaultValue="branding" className="space-y-6">
