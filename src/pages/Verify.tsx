@@ -14,6 +14,7 @@ import { gooeyToast, GooeyToaster } from 'goey-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { resolvePhotoUrl } from '@/lib/photo';
 import LoadingState from '@/components/LoadingState';
+import { EmptyState } from '@/components/EmptyState';
 
 interface VerificationResult {
   found: boolean;
@@ -169,27 +170,27 @@ export default function Verify() {
       <div className="container py-12">
         <div className="mx-auto max-w-2xl">
           <div className="text-center mb-8">
-            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl mb-2">
+            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl mb-2 text-slate-900 dark:text-slate-100">
               Verify Identity
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-slate-500 dark:text-slate-400 leading-relaxed text-sm sm:text-base">
               Enter an identification number to verify someone's identity.
             </p>
           </div>
 
-          <Card className="mb-8">
+          <Card className="mb-10 border-slate-100 dark:border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-2xl">
             <CardContent className="pt-6">
               <form onSubmit={handleSearch} className="flex gap-3">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
-                    placeholder="Enter identification number (e.g., ID-2024-001)"
+                    placeholder="ENTER IDENTIFICATION..."
                     value={indexNumber}
                     onChange={(e) => setIndexNumber(e.target.value.toUpperCase())}
-                    className="pl-10 uppercase"
+                    className="pl-10 uppercase text-xs sm:text-sm font-medium tracking-wide placeholder:text-slate-400 rounded-xl border-slate-200 focus-visible:ring-indigo-500"
                   />
                 </div>
-                <Button type="submit" disabled={isSearching} className="gradient-primary border-0">
+                <Button type="submit" disabled={isSearching} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl px-5 border-0 font-medium shadow-sm">
                   {isSearching ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -298,10 +299,7 @@ export default function Verify() {
           </AnimatePresence>
 
           {!result && (
-            <div className="text-center text-muted-foreground py-12">
-              <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Enter an identification number above to verify an identity</p>
-            </div>
+            <EmptyState />
           )}
         </div>
       </div>
