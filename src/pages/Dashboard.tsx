@@ -80,7 +80,7 @@ type OnboardingStep = 'choice' | 'create' | 'join';
 
 export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
-  const { isAdmin, institution, institutionId, userInstitutions, refreshInstitution } = useInstitution();
+  const { isAdmin, institution, institutionId, userInstitutions, refreshInstitution, isLoading: instLoading } = useInstitution();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -377,7 +377,7 @@ export default function Dashboard() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || instLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">

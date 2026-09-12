@@ -87,7 +87,7 @@ interface UserInstitution {
 
 export default function Admin() {
   const { user, isLoading: authLoading } = useAuth();
-  const { isAdmin, institution, institutionId, refreshInstitution } = useInstitution();
+  const { isAdmin, institution, institutionId, refreshInstitution, isLoading: instLoading } = useInstitution();
   const [records, setRecords] = useState<IndexRecord[]>([]);
   const [logs, setLogs] = useState<VerificationLog[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -614,7 +614,7 @@ export default function Admin() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || instLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">

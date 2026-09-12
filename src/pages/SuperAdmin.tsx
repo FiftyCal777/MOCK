@@ -55,7 +55,7 @@ interface SuperAdminUser {
 
 export default function SuperAdmin() {
   const { user, isLoading: authLoading } = useAuth();
-  const { isSuperAdmin } = useInstitution();
+  const { isSuperAdmin, isLoading: instLoading } = useInstitution();
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [admins, setAdmins] = useState<InstitutionAdmin[]>([]);
   const [superAdmins, setSuperAdmins] = useState<SuperAdminUser[]>([]);
@@ -372,7 +372,7 @@ export default function SuperAdmin() {
     });
   };
 
-  if (authLoading) {
+  if (authLoading || instLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">

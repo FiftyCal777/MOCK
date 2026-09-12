@@ -33,7 +33,7 @@ interface VerificationResult {
 
 export default function Verify() {
   const { user, isLoading: authLoading } = useAuth();
-  const { institutionId } = useInstitution();
+  const { institutionId, isLoading: instLoading } = useInstitution();
   const [indexNumber, setIndexNumber] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
@@ -56,7 +56,7 @@ export default function Verify() {
   }, [result]);
   const { toast } = useToast();
 
-  if (authLoading) {
+  if (authLoading || instLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
