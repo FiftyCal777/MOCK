@@ -49,7 +49,7 @@ const staffInviteSchema = z.object({
 
 export default function InstitutionSettings() {
   const { user, isLoading: authLoading } = useAuth();
-  const { isAdmin, institutionId, institution, refreshInstitution } = useInstitution();
+  const { isAdmin, institutionId, institution, refreshInstitution, isLoading: instLoading } = useInstitution();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -290,7 +290,7 @@ export default function InstitutionSettings() {
     );
   };
 
-  if (authLoading) {
+  if (authLoading || instLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
