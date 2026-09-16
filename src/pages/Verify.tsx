@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { resolvePhotoUrl } from '@/lib/photo';
 import LoadingState from '@/components/LoadingState';
 import { EmptyState } from '@/components/EmptyState';
+import { IdCardTemplate } from '@/components/IdCardTemplate';
 
 interface VerificationResult {
   found: boolean;
@@ -23,7 +24,7 @@ interface VerificationResult {
     full_name: string;
     photo_url: string | null;
     organization: string;
-    institutions: { name: string } | null;
+    institutions: { name: string; logo_url: string | null } | null;
     issued_at: string;
     expires_at: string;
     status: string;
@@ -33,27 +34,42 @@ interface VerificationResult {
 
 export default function Verify() {
   const { user, isLoading: authLoading } = useAuth();
-  const { institutionId, isLoading: instLoading } = useInstitution();
+  const { institutionId, institution, isLoading: instLoading } = useInstitution();
   const [indexNumber, setIndexNumber] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
+  const [logoSrc, setLogoSrc] = useState<string | null>(null);
 
-  // Resolve the record photo (storage path or external URL) into a displayable URL
+  // Resolve the record photo and institution logo URLs
   useEffect(() => {
     let cancelled = false;
-    const url = result?.found ? result.data?.photo_url ?? null : null;
-    if (!url) {
+    const photoUrl = result?.found ? result.data?.photo_url ?? null : null;
+    const rawLogoUrl = result?.found
+      ? (result.data?.institutions?.logo_url ?? (result.data?.metadata?.logo_url as string | undefined) ?? institution?.logo_url ?? null)
+      : (institution?.logo_url ?? null);
+
+    if (!photoUrl) {
       setPhotoSrc(null);
-      return;
+    } else {
+      resolvePhotoUrl(photoUrl).then((resolved) => {
+        if (!cancelled) setPhotoSrc(resolved);
+      });
     }
-    resolvePhotoUrl(url).then((resolved) => {
-      if (!cancelled) setPhotoSrc(resolved);
-    });
+
+    if (!rawLogoUrl) {
+      setLogoSrc(null);
+    } else {
+      resolvePhotoUrl(rawLogoUrl).then((resolved) => {
+        if (!cancelled) setLogoSrc(resolved || rawLogoUrl);
+      });
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [result]);
+  }, [result, institution]);
+
   const { toast } = useToast();
 
   if (authLoading || instLoading) {
@@ -116,7 +132,7 @@ export default function Verify() {
       // Search for the index number
       const { data, error } = await supabase
         .from('index_records')
-        .select('index_number, full_name, photo_url, organization, issued_at, expires_at, status, metadata, institutions(name)')
+        .select('index_number, full_name, photo_url, organization, issued_at, expires_at, status, metadata, institutions(name, logo_url)')
         .eq('index_number', indexNumber.trim().toUpperCase())
         .eq('status', 'active')
         .maybeSingle();
@@ -210,82 +226,70 @@ export default function Verify() {
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 25 }}
               >
-                <Card className="border-success/50 animate-scale-in">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/20">
-                        <CheckCircle2 className="h-5 w-5 text-success" />
+                <Card className="border-success/50 animate-scale-in overflow-hidden shadow-lg">
+                  <CardHeader className="pb-4 bg-emerald-500/5 border-b border-emerald-500/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-display text-emerald-950 dark:text-emerald-100 flex items-center gap-2">
+                            Identity Verified
+                          </CardTitle>
+                          <CardDescription className="text-emerald-800/80 dark:text-emerald-300/80">
+                            Record found in the database
+                          </CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-lg font-display">Identity Verified</CardTitle>
-                        <CardDescription>Record found in the database</CardDescription>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={isExpired ? 'destructive' : 'default'} className={!isExpired ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}>
+                          {isExpired ? 'Expired' : 'Active'}
+                        </Badge>
+                        <Badge variant="outline" className={isRegisteredStudent ? 'border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400' : 'border-destructive text-destructive'}>
+                          {isRegisteredStudent ? 'Registered' : 'Not Registered'}
+                        </Badge>
                       </div>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="pt-0">
+                  <CardContent className="p-6 flex flex-col items-center bg-slate-50 dark:bg-slate-900/50">
                     {isExpired && (
-                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-warning/20 p-3 text-warning-foreground">
+                      <div className="w-full mb-4 flex items-center gap-2 rounded-lg bg-amber-500/15 border border-amber-500/30 p-3 text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-4 w-4" />
-                        <span className="text-sm font-medium">This ID has expired</span>
+                        <span className="text-sm font-medium">This ID card has expired</span>
                       </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row gap-6">
-                      {photoSrc ? (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={photoSrc}
-                            alt={result.data.full_name}
-                            className="h-32 w-32 rounded-xl object-cover border border-border"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex-shrink-0 h-32 w-32 rounded-xl bg-secondary flex items-center justify-center border border-border">
-                          <User className="h-12 w-12 text-muted-foreground" />
-                        </div>
-                      )}
+                    {/* Verified ID Card Template */}
+                    <div className="w-full flex justify-center my-2">
+                      <IdCardTemplate
+                        indexNumber={result.data.index_number}
+                        fullName={result.data.full_name}
+                        photoUrl={photoSrc}
+                        organization={result.data.organization}
+                        institutionName={
+                          (result.data.institutions?.name || institution?.name || '').toUpperCase().includes('GCTU')
+                            ? 'GHANA COMMUNICATION TECHNOLOGY UNIVERSITY'
+                            : result.data.institutions?.name || institution?.name || 'GHANA COMMUNICATION TECHNOLOGY UNIVERSITY'
+                        }
+                        logoUrl={logoSrc || result.data.institutions?.logo_url || (result.data.metadata?.logo_url as string) || institution?.logo_url || null}
+                        role={(result.data.metadata?.role as string) || 'STUDENT'}
+                        program={(result.data.metadata?.program as string) || result.data.organization}
+                        motto={(result.data.metadata?.motto as string) || 'Knowledge Comes From Learning'}
+                      />
+                    </div>
 
-                      <div className="flex-1 space-y-4">
-                        <div>
-                          <div className="text-sm text-muted-foreground mb-1">Full Name</div>
-                          <div className="font-display text-lg font-semibold">{result.data.full_name}</div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-4">
-                          <div>
-                            <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
-                              <Building2 className="h-3 w-3" />
-                              Organization
-                            </div>
-                            <div className="font-medium">
-                              {result.data.institutions?.name ?? result.data.organization}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              Valid Period
-                            </div>
-                            <div className="font-medium">
-                              {new Date(result.data.issued_at).toLocaleDateString()} -{' '}
-                              {new Date(result.data.expires_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={isExpired ? 'destructive' : 'default'} className={!isExpired ? 'bg-success' : ''}>
-                            {isExpired ? 'Expired' : 'Active'}
-                          </Badge>
-                          <Badge variant="outline" className={isRegisteredStudent ? 'border-success text-success' : 'border-destructive text-destructive'}>
-                            {isRegisteredStudent ? 'Registered' : 'Not Registered'}
-                          </Badge>
-                          <Badge variant="outline" className="uppercase">
-                            {result.data.index_number}
-                          </Badge>
-                        </div>
+                    {/* Additional Metadata Footer */}
+                    <div className="w-full mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
+                      <div className="flex items-center gap-1">
+                        <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Organization: <strong>{result.data.institutions?.name ?? result.data.organization}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Valid: {new Date(result.data.issued_at).toLocaleDateString()} – {new Date(result.data.expires_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </CardContent>
