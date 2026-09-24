@@ -1,5 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { User } from 'lucide-react';
+import { User, Maximize2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 export interface IdCardData {
   indexNumber: string;
@@ -85,6 +92,7 @@ export function IdCardTemplate({
 }: IdCardData & { className?: string }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
 
   useEffect(() => {
     const updateScale = () => {
@@ -179,13 +187,25 @@ export function IdCardTemplate({
 
           {/* Right Column: Photo & Index Number */}
           <div className="w-[124px] flex flex-col items-center justify-center flex-shrink-0">
-            <div className="w-[120px] h-[142px] rounded-md overflow-hidden border-2 border-slate-900 shadow-md bg-slate-100 flex items-center justify-center">
+            <div
+              onClick={() => photoUrl && setIsPhotoOpen(true)}
+              className={`w-[120px] h-[142px] rounded-md overflow-hidden border-2 border-slate-900 shadow-md bg-slate-100 flex items-center justify-center relative ${
+                photoUrl ? 'cursor-pointer group hover:border-blue-600 transition-all' : ''
+              }`}
+              title={photoUrl ? "Click or tap to view full photo" : undefined}
+            >
               {photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt={fullName}
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  <img
+                    src={photoUrl}
+                    alt={fullName}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-[11px] font-bold">
+                    <Maximize2 className="w-4 h-4" />
+                    <span>Enlarge</span>
+                  </div>
+                </>
               ) : (
                 <User className="w-12 h-12 text-slate-400" />
               )}
@@ -211,6 +231,21 @@ export function IdCardTemplate({
           </div>
         </div>
       </div>
+
+      {/* Pure Image & Cancel Button Lightbox */}
+      {photoUrl && (
+        <Dialog open={isPhotoOpen} onOpenChange={setIsPhotoOpen}>
+          <DialogContent className="sm:max-w-fit max-w-[92vw] max-h-[92vh] bg-transparent border-0 p-0 shadow-none overflow-hidden flex items-center justify-center focus:outline-none [&>button]:top-3 [&>button]:right-3 [&>button]:bg-black/70 [&>button]:hover:bg-black [&>button]:text-white [&>button]:p-2.5 [&>button]:rounded-full [&>button]:border [&>button]:border-white/30 [&>button]:shadow-lg [&>button]:transition-all [&>button]:z-50">
+            <div className="relative flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl bg-black/80 border border-white/10">
+              <img
+                src={photoUrl}
+                alt={fullName}
+                className="max-h-[85vh] max-w-[90vw] sm:max-w-[480px] w-auto h-auto object-contain rounded-2xl"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
